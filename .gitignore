@@ -34,3 +34,8 @@ pip-delete-this-directory.txt
 .cache
 nosetests.xml
 coverage.xml
+lightning_logs/**
+multisim/checkpoints/** 
+multisim/data/** 
+
+*/__pycache__/**
