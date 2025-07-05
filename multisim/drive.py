@@ -1,4 +1,5 @@
 import os
+from multisim.dataset_utils import preprocess
 import torch
 import torchvision.transforms as T
 from torchvision.io import read_image
@@ -6,8 +7,8 @@ import matplotlib.pyplot as plt
 from udacity_gym.extras.model.lane_keeping.vit.vit_model import ViT
 
 # Paths
-model_path = "./multisim/checkpoints/lane_keeping/vit/vit_udacity_loss=0.000-v1.ckpt"
-image_folder = "./multisim/data/2"
+model_path = "../udacity-gym/multisim/checkpoints/lane_keeping/vit/vit_udacity_loss=0.000-v1.ckpt"
+image_folder = "../udacity-gym/multisim/data/2"
 
 # Extract identifiers for output filename
 model_name = os.path.splitext(os.path.basename(model_path))[0]
@@ -31,7 +32,10 @@ for idx, file_name in enumerate(image_files, 1):
     image_path = os.path.join(image_folder, file_name)
 
     # Load and preprocess image
-    input_image = read_image(image_path).float() / 255.0  # Normalize to [0,1]
+    input_image = read_image(image_path)
+    # input_image = input_image.permute(1, 2, 0).numpy()  # [H, W, C], convert to np.ndarray for preprocess
+    # input_image = preprocess(input_image, "udacity")
+    input_image = input_image.float() / 255.0  # Normalize to [0,1]
     input_image = resize(input_image).unsqueeze(0).to("cuda")  # (1,3,160,160)
 
     # Predict steering angle

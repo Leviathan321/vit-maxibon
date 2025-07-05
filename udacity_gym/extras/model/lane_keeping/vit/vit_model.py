@@ -1,13 +1,13 @@
 import math
 import torchvision.utils
 from typing import Tuple
-import lightning as pl
+import pytorch_lightning as lightning
 import torch
 from torch import Tensor
 from torchvision.models import VisionTransformer
 
 
-class ViT(pl.LightningModule):
+class ViT(lightning.LightningModule):
 
     def __init__(self,
                  input_shape: Tuple[int, int, int] = (3, 160, 320),
@@ -26,8 +26,10 @@ class ViT(pl.LightningModule):
         # print(x.shape)
         # print(torchvision.transforms.functional.resize(x, (160,160)).unsqueeze(0).shape)
         # return self.model(torchvision.transforms.functional.resize(x, (160,160)).unsqueeze(0)).squeeze(0)
-        return self.model(torchvision.transforms.functional.resize(x, (160,160)))
-
+        x = torchvision.transforms.functional.resize(x, (160, 160))
+        out = self.model(x)
+        return torch.tanh(out)
+    
     def training_step(self, batch: Tuple[Tensor, Tensor], batch_idx: int = 0):
         img, true = batch
         pred = self.forward(x=img)

@@ -59,9 +59,9 @@ class ValLossCSVLogger(pl.Callback):
 if __name__ == "__main__":
     archive_path = "/home/lev/Downloads/training_datasets/"
     archive_names = [
-        "beamng-2022_05_31_14_34_55-archive-agent-autopilot-seed-0-episodes-50.npz",
+        #"beamng-2022_05_31_14_34_55-archive-agent-autopilot-seed-0-episodes-50.npz",
         #"udacity-2022_05_31_12_17_56-archive-agent-autopilot-seed-0-episodes-50.npz",
-        #"donkey-2022_05_31_12_45_57-archive-agent-autopilot-seed-0-episodes-50.npz"
+        "donkey-2022_05_31_12_45_57-archive-agent-autopilot-seed-0-episodes-50.npz"
     ]
     env_name = "udacity"
     # Load dataset splits
@@ -71,7 +71,7 @@ if __name__ == "__main__":
         seed=0,
         test_split=0.2,
         predict_throttle=False,
-        env_name=env_name
+        env_name=None
     )
 
     # Create PyTorch datasets
@@ -87,10 +87,11 @@ if __name__ == "__main__":
 
     checkpoint_dir = "./multisim/checkpoints/lane_keeping/vit"
 
+    filename = "vit_{}".format(env_name)
     # Callbacks
     checkpoint_callback = ModelCheckpoint(
         dirpath=checkpoint_dir,
-        filename="vit_{}_{loss:.3f}".format(env_name),
+        filename=filename + "_{loss:.3f}",
         monitor="val/loss",
         save_top_k=1,
         mode="min",
