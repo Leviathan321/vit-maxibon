@@ -36,6 +36,7 @@ nosetests.xml
 coverage.xml
 lightning_logs/**
 multisim/checkpoints/** 
+multisim/checkpoints*/** 
 multisim/data/** 
 
 */__pycache__/**

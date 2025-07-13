@@ -9,7 +9,7 @@ from torch.utils.data import Dataset, DataLoader
 from sklearn.model_selection import train_test_split
 
 # Replace these with your actual values
-IMAGE_HEIGHT, IMAGE_WIDTH = 66, 200  # example
+IMAGE_HEIGHT, IMAGE_WIDTH = 160, 320  # example
 SIMULATOR_NAMES = ["beamng", "udacity", "donkey"]  # example names
 BEAMNG_SIM_NAME = "beamng"
 UDACITY_SIM_NAME = "udacity"
@@ -21,7 +21,7 @@ DONKEY_SIM_NAME = "donkey"
 def _load_numpy_archive(archive_path: str, archive_name: str) -> dict:
     fp = os.path.join(archive_path, archive_name)
     assert os.path.exists(fp), f"Archive file {fp} does not exist"
-    return np.load(fp, allow_pickle=True)
+    return np.load(fp, allow_pickle=True, mmap_mode="r")
 
 def load_archive(archive_path: str, archive_name: str) -> dict:
     return _load_numpy_archive(archive_path, archive_name)
@@ -53,8 +53,17 @@ def load_all_into_dataset(  archive_path: str,
         y = actions[:, 0]
     else:
         y = actions
+
+    print("excerpt of actions:", actions[:30])
     
     return obs, actions
+
+def print_memory_usage(tag=""):
+    import psutil
+    import os
+    process = psutil.Process(os.getpid())
+    mem = process.memory_info().rss / 1e9  # in GB
+    print(f"[{tag}] Memory usage: {mem:.2f} GB")
 
 def load_archive_into_dataset(
     archive_path: str,
@@ -69,15 +78,40 @@ def load_archive_into_dataset(
     actions = []
     for name in archive_names:
         d = load_archive(archive_path, name)
+        print("Loaded archive.")
         cnt = len(d["observations"]) if num is None else min(len(d["observations"]), num)
         obs.append(d["observations"][:cnt])
         actions.append(d["actions"][:cnt])
+        import gc
+        del d
+        gc.collect()
+    
+    print_memory_usage()
 
-    X = np.concatenate(obs)
+    obs = np.concatenate(obs)
+    
+    X = obs
+    del obs
+    gc.collect()
+    
+    print_memory_usage(tag="")
+
+    
     actions = np.concatenate(actions)
     if actions.ndim > 2:
         actions = actions.squeeze(axis=1)
     y = actions if predict_throttle else actions[:, 0]
+
+    print("Before train test split.")
+    print(f"X shape: {X.shape}, dtype: {X.dtype}, size: {X.nbytes / 1e9:.2f} GB")
+    print(f"y shape: {y.shape}, dtype: {y.dtype}, size: {y.nbytes / 1e9:.2f} GB")
+    print_memory_usage()
+
+    print("after freeing memory")
+    import gc
+    gc.collect()
+    print_memory_usage()
+
 
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=test_split, random_state=seed
@@ -181,6 +215,12 @@ class DrivingDataset(Dataset):
 
         if self.preprocess_images:
             img = preprocess(img, self.env_name, fake_images=self.fake_images)
+            # Save the image for debugging
+        
+        # from PIL import Image
+        # img_pil = Image.fromarray(img)
+        # img_pil.save("./image_vit_training.png")
+        # input()
 
         img_t = torch.from_numpy(img).permute(2, 0, 1).float()
         label_t = torch.from_numpy(label).float()
