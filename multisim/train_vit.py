@@ -63,7 +63,7 @@ if __name__ == "__main__":
     archive_names = [
         #"beamng-2022_05_31_14_34_55-archive-agent-autopilot-seed-0-episodes-50.npz",
         "udacity-2022_05_31_12_17_56-archive-agent-autopilot-seed-0-episodes-50.npz",
-        #"donkey-2022_05_31_12_45_57-archive-agent-autopilot-seed-0-episodes-50.npz"
+        "donkey-2022_05_31_12_45_57-archive-agent-autopilot-seed-0-episodes-50.npz"
     ]
      # Extract simulator names (first token before the first '-')
     sim_names = {name.split("-")[0].lower() for name in archive_names}
@@ -127,15 +127,12 @@ if __name__ == "__main__":
     trainer = pl.Trainer(
         accelerator="cuda",
         devices=[0],
-        max_epochs=100,
+        max_epochs=2000,
         callbacks=[checkpoint_callback, earlystopping_callback, val_loss_logger],
     )
 
     # Model init
     model = ViT()
-
-    print(type(model))
-    print(isinstance(model, LightningModule))
 
     # Train
     trainer.fit(
