@@ -8,7 +8,7 @@ import pytorch_lightning as pl
 from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
 from lightning.pytorch import LightningModule
 from datetime import datetime
-from multisim.dataset_lazy import DrivingDatasetLazy, split_data
+
 from multisim.dataset_utils import load_archive_into_dataset, DrivingDataset
 from udacity_gym.extras.model.lane_keeping.vit.vit_model import ViT
 
@@ -59,10 +59,9 @@ class ValLossCSVLogger(pl.Callback):
 
 
 if __name__ == "__main__":
-    archive_path = "/home/lev/Downloads/training_datasets/raw/"
-
+    archive_path = "/home/lev/Downloads/training_datasets/"
     archive_names = [
-        "beamng-2022_05_31_14_34_55-archive-agent-autopilot-seed-0-episodes-50.npz",
+        #"beamng-2022_05_31_14_34_55-archive-agent-autopilot-seed-0-episodes-50.npz",
         "udacity-2022_05_31_12_17_56-archive-agent-autopilot-seed-0-episodes-50.npz",
         "donkey-2022_05_31_12_45_57-archive-agent-autopilot-seed-0-episodes-50.npz"
     ]
@@ -78,16 +77,24 @@ if __name__ == "__main__":
         raise ValueError("No valid (uncommented) archive names found.")
 
     print("env_name:", env_name)
+    # Load dataset splits
+    X_train, X_test, y_train, y_test = load_archive_into_dataset(
+        archive_path=archive_path,
+        archive_names=archive_names,
+        seed=0,
+        test_split=0.2,
+        predict_throttle=False,
+        env_name=None
+    )
+    # print("shape y:", y_train.shape)
+    # print("excerpt y:", y_train[:10])
+
+    print("Archive loaded into dataset.")
 
     # Create PyTorch datasets
-    dataset = DrivingDatasetLazy(folder_path=archive_path,
-                                    predict_throttle=False,
-                                    preprocess_images=True,
-                                    is_training=True)
-    
-    train_ds, val_ds = split_data(dataset)
-    
-    print(f"Dataset contains {len(dataset)} images.")
+    train_ds = DrivingDataset(X_train, y_train, is_training=True, env_name=env_name)
+    val_ds = DrivingDataset(X_test, y_test, is_training=False, env_name=env_name)
+
     # Data loaders
     train_loader = DataLoader(train_ds, batch_size=32,
                             shuffle=True, num_workers=8, prefetch_factor=1, pin_memory = True)

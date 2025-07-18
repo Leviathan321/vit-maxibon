@@ -97,7 +97,6 @@ def load_archive_into_dataset(
     gc.collect()    
     print_memory_usage(tag="")
 
-
     actions = np.concatenate(actions)
     if actions.ndim > 2:
         actions = actions.squeeze(axis=1)
