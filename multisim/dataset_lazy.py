@@ -37,9 +37,15 @@ class DrivingDatasetLazy:
     
     # @cache
     def get_image(self, idx):
-        img = Image.open(self.folder_path.joinpath("",self.metadata.iloc[idx, 0] + ".png"))
-        return np.array(img)
-
+        base_filename = self.metadata.iloc[idx, 0]
+        possible_extensions = [".png", ".jpg", ".jpeg"]
+        
+        for ext in possible_extensions:
+            file_path = self.folder_path.joinpath(base_filename + ext)
+            if file_path.exists():
+                with Image.open(file_path) as img:
+                    return np.array(img)
+                
     def _get_env_name(self, path):
         if "beamng" in path:
             return "beamng"
@@ -87,9 +93,10 @@ class DrivingDatasetLazy:
         if self.preprocess_images:
             img = preprocess(img, env_name, fake_images=False)
         
-        # image = Image.fromarray(img)
-        # image.save(f"./image_vit_training_{self.counter}.png")
-        
+        image = Image.fromarray(img)
+        #image.save(f"./image_vit_training_{self.counter}.png")
+        #image.save(f"./image_vit_training.png")
+
         img = torchvision.transforms.ToTensor()(img)  # shape (C, H, W), float in [0, 1]
         
         label = torch.from_numpy(label).float()
