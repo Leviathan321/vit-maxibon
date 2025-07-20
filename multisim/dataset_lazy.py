@@ -14,16 +14,30 @@ import pandas as pd
 class DrivingDatasetLazy:
     def __init__(self, 
                  is_training: bool,
-                 folder_path: str,
+                 folder_paths,  # now can be a list or a single folder
                  predict_throttle: bool = False,
                  preprocess_images: bool = True):
-        self.folder_path =  pathlib.Path(folder_path)
-        self.metadata = pd.read_csv(self.folder_path.joinpath('actions.csv'))
+        # Convert to list if a single path is passed
+        if isinstance(folder_paths, (str, pathlib.Path)):
+            folder_paths = [folder_paths]
+
+        self.folder_paths = [pathlib.Path(fp) for fp in folder_paths]
+
+        # Load metadata from all folders and add folder index
+        metadata_list = []
+        for idx, folder_path in enumerate(self.folder_paths):
+            df = pd.read_csv(folder_path.joinpath('actions.csv'))
+            df['folder_idx'] = idx
+            metadata_list.append(df)
+
+        self.metadata = pd.concat(metadata_list, ignore_index=True)
+
         self.counter = 0
         self.index_map = []  # List of (file_path, key, local_index)
         self.predict_throttle = predict_throttle
         self.preprocess_images = preprocess_images
         self.is_training = is_training
+
         # for path in self.file_paths:
         #     with np.load(path, allow_pickle=False) as archive:
         #         arr = archive["observations"]
@@ -38,10 +52,16 @@ class DrivingDatasetLazy:
     # @cache
     def get_image(self, idx):
         base_filename = self.metadata.iloc[idx, 0]
+   
+        folder_idx = self.metadata.iloc[idx]['folder_idx']
+        folder_path = self.folder_paths[folder_idx]
+
+        assert folder_idx < len(self.folder_paths)
+
         possible_extensions = [".png", ".jpg", ".jpeg"]
         
         for ext in possible_extensions:
-            file_path = self.folder_path.joinpath(base_filename + ext)
+            file_path = folder_path.joinpath(base_filename + ext)
             if file_path.exists():
                 with Image.open(file_path) as img:
                     return np.array(img)

@@ -1,6 +1,8 @@
+import json
 import os
 import csv
 from pathlib import Path
+import pandas as pd
 import matplotlib.pyplot as plt
 import torch
 from torch.utils.data import DataLoader
@@ -57,6 +59,28 @@ class ValLossCSVLogger(pl.Callback):
         plt.savefig(plot_path)
         plt.close()
 
+def get_distribution(dataset):
+    from collections import Counter
+
+    # Assuming your dataset has a pandas DataFrame self.metadata with 'image_name' column
+    env_counts = Counter()
+
+    for idx in range(len(dataset)):
+        image_name = str(dataset.metadata.iloc[idx]["image_name"]).lower()
+        if "beamng" in image_name:
+            env_counts["beamng"] += 1
+        elif "donkey" in image_name:
+            env_counts["donkey"] += 1
+        elif "udacity" in image_name:
+            env_counts["udacity"] += 1
+        else:
+            env_counts["unknown"] += 1
+
+    print("Counts via __getitem__:")
+    for env, count in env_counts.items():
+        print(f"{env}: {count}")
+    
+    return env_counts
 
 if __name__ == "__main__":
     archive_path = "/home/lev/Downloads/training_datasets/raw/"
@@ -79,12 +103,16 @@ if __name__ == "__main__":
 
     print("env_name:", env_name)
 
+    additional_data_path = "/home/lev/Documents/testing/" + \
+                            "MultiSimulation/opensbt-multisim/recording/data/20-07-2025"
+    folder_paths = [archive_path, additional_data_path]
+
     # Create PyTorch datasets
-    dataset = DrivingDatasetLazy(folder_path=archive_path,
+    dataset = DrivingDatasetLazy(folder_paths=folder_paths,
                                     predict_throttle=False,
                                     preprocess_images=True,
                                     is_training=True)
-    
+    get_distribution(dataset)
     train_ds, val_ds = split_data(dataset)
     
     print(f"Dataset contains {len(dataset)} images.")
@@ -99,9 +127,17 @@ if __name__ == "__main__":
     print("Data lodaded")
 
     current_date = datetime.now().strftime("%d-%m-%Y")
-    checkpoint_dir = f"./multisim/checkpoints_{current_date}/lane_keeping/vit"
+    checkpoint_dir = f"./multisim/checkpoints_{current_date}/lane_keeping/vit/"
     os.makedirs(checkpoint_dir, exist_ok=True)
 
+    # write data paths for tracking
+    distro = get_distribution(dataset)
+    output_json_path = Path(checkpoint_dir + os.sep + "data.json")
+
+    with open(output_json_path, 'w') as f:
+        json.dump({"folders_path" : [folder_paths],
+                   "distribution" : distro}, f, indent=4)
+    
     filename = "vit_{}".format(env_name)
     # Callbacks
     checkpoint_callback = ModelCheckpoint(
