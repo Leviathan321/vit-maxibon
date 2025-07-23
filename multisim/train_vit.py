@@ -102,16 +102,22 @@ if __name__ == "__main__":
         raise ValueError("No valid (uncommented) archive names found.")
 
     print("env_name:", env_name)
-
-    additional_data_path = "/home/lev/Documents/testing/" + \
-                            "MultiSimulation/opensbt-multisim/recording/data/20-07-2025"
-    folder_paths = [archive_path, additional_data_path]
+    additional_data_paths = [
+        #"/home/lev/Documents/testing/MultiSimulation/opensbt-multisim/recording/data/20-07-2025",
+        #"/home/lev/Documents/testing/MultiSimulation/opensbt-multisim/recording/data/18-07-2025/",
+        "/home/lev/Documents/testing/MultiSimulation/opensbt-multisim/recording/data/21-07-2025_2000/",
+        "/home/lev/Documents/testing/MultiSimulation/opensbt-multisim/recording/data/22-07-2025_2000" # udacity
+        ]
+    folder_paths = [archive_path] + additional_data_paths
 
     # Create PyTorch datasets
     dataset = DrivingDatasetLazy(folder_paths=folder_paths,
                                     predict_throttle=False,
                                     preprocess_images=True,
-                                    is_training=True)
+                                    is_training=True,
+                                    percentage = [1,       # initial
+                                                  0.7,     # extra donkey
+                                                  0.5])    # extra udacity
     get_distribution(dataset)
     train_ds, val_ds = split_data(dataset)
     
@@ -126,7 +132,7 @@ if __name__ == "__main__":
 
     print("Data lodaded")
 
-    current_date = datetime.now().strftime("%d-%m-%Y")
+    current_date = datetime.now().strftime("%d-%m-%Y_%H-%M")
     checkpoint_dir = f"./multisim/checkpoints_{current_date}/lane_keeping/vit/"
     os.makedirs(checkpoint_dir, exist_ok=True)
 
@@ -148,7 +154,7 @@ if __name__ == "__main__":
         mode="min",
         verbose=True,
     )
-    earlystopping_callback = EarlyStopping(monitor="val/loss", mode="min", patience=15)
+    earlystopping_callback = EarlyStopping(monitor="val/loss", mode="min", patience=5)
     val_loss_logger = ValLossCSVLogger(save_dir=checkpoint_dir, 
                                        env_name = env_name)
 
