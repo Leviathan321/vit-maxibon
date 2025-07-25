@@ -105,8 +105,10 @@ if __name__ == "__main__":
     additional_data_paths = [
         #"/home/lev/Documents/testing/MultiSimulation/opensbt-multisim/recording/data/20-07-2025",
         #"/home/lev/Documents/testing/MultiSimulation/opensbt-multisim/recording/data/18-07-2025/",
-        "/home/lev/Documents/testing/MultiSimulation/opensbt-multisim/recording/data/21-07-2025_2000/",
-        "/home/lev/Documents/testing/MultiSimulation/opensbt-multisim/recording/data/22-07-2025_2000" # udacity
+        # "/home/lev/Documents/testing/MultiSimulation/opensbt-multisim/recording/data/20-07-2025_2000/",
+        # "/home/lev/Documents/testing/MultiSimulation/opensbt-multisim/recording/data/21-07-2025_2000/",
+        # "/home/lev/Documents/testing/MultiSimulation/opensbt-multisim/recording/data/23-07-2025_2000", # udacity
+        # "/home/lev/Documents/testing/MultiSimulation/opensbt-multisim/recording/data/24-07-2025_2000" # udacity
         ]
     folder_paths = [archive_path] + additional_data_paths
 
@@ -115,9 +117,13 @@ if __name__ == "__main__":
                                     predict_throttle=False,
                                     preprocess_images=True,
                                     is_training=True,
-                                    percentage = [1,       # initial
-                                                  0.7,     # extra donkey
-                                                  0.5])    # extra udacity
+                                    percentage = [
+                                                    1,       # initial
+                                                #   0.4,     # extra donkey
+                                                #   0.4,     # extra donkey
+                                                #   0.4,     # extra udacity
+                                                #   0.4
+                                                ])    # extra udacity
     get_distribution(dataset)
     train_ds, val_ds = split_data(dataset)
     
