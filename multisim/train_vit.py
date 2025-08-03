@@ -13,7 +13,7 @@ from datetime import datetime
 from multisim.dataset_lazy import DrivingDatasetLazy, split_data
 from multisim.dataset_utils import load_archive_into_dataset, DrivingDataset
 from udacity_gym.extras.model.lane_keeping.vit.vit_model import ViT
-
+from multisim.plot import plot_steering_distribution
 
 # Custom callback to append validation loss to CSV after each validation epoch
 class ValLossCSVLogger(pl.Callback):
@@ -103,27 +103,52 @@ if __name__ == "__main__":
 
     print("env_name:", env_name)
     additional_data_paths = [
+        # maxibon - seed2000 - 25
+        "/home/lev/Documents/testing/MultiSimulation/vit-recordings-maxi/2000/udacity_2025-07-30_18-13-59",
+        "/home/lev/Documents/testing/MultiSimulation/vit-recordings-maxi/2000/donkey_2025-07-30_14-04-44",
+        "/home/lev/Documents/testing/MultiSimulation/vit-recordings-maxi/2000/beamng_2025-07-30_14-17-01",
+
+        # maxibon - seed3000 - 25
+        "/home/lev/Documents/testing/MultiSimulation/vit-recordings-maxi/3000/beamng_2025-07-31_22-59-29/",
+        "/home/lev/Documents/testing/MultiSimulation/vit-recordings-maxi/3000/donkey_2025-07-31_22-47-17/",
+        "/home/lev/Documents/testing/MultiSimulation/vit-recordings-maxi/3000/udacity_2025-08-02_01-55-41"
+
         #"/home/lev/Documents/testing/MultiSimulation/opensbt-multisim/recording/data/20-07-2025",
         #"/home/lev/Documents/testing/MultiSimulation/opensbt-multisim/recording/data/18-07-2025/",
         # "/home/lev/Documents/testing/MultiSimulation/opensbt-multisim/recording/data/20-07-2025_2000/",
         # "/home/lev/Documents/testing/MultiSimulation/opensbt-multisim/recording/data/21-07-2025_2000/",
         # "/home/lev/Documents/testing/MultiSimulation/opensbt-multisim/recording/data/23-07-2025_2000", # udacity
-        # "/home/lev/Documents/testing/MultiSimulation/opensbt-multisim/recording/data/24-07-2025_2000" # udacity
+        # "/home/lev/Documents/testing/MultiSimulation/opensbt-multisim/recording/data/24-07-2025_2000", # udacity
+        # "/home/lev/Documents/testing/MultiSimulation/opensbt-multisim/recording/data/bng_recording_25-07-25_2000/25-07-2025_2000" # udacity
         ]
     folder_paths = [archive_path] + additional_data_paths
 
+    # evaluate distribution
+    plot_steering_distribution(folder_paths)
+
+    percentage = [  1,# maxibon based
+                    1,
+                    1,
+                    1,
+
+                    1,
+                    1,
+                    1,
+                    #     1,       # initial
+                    #   0.4,     # extra donkey
+                    #   0.4,     # extra donkey
+                    #   0.4,     # extra udacity
+                    #   0.4,
+                    #   0.4       # beamng
+                ]
+    ignore_every_kth = None
     # Create PyTorch datasets
     dataset = DrivingDatasetLazy(folder_paths=folder_paths,
                                     predict_throttle=False,
                                     preprocess_images=True,
                                     is_training=True,
-                                    percentage = [
-                                                    1,       # initial
-                                                #   0.4,     # extra donkey
-                                                #   0.4,     # extra donkey
-                                                #   0.4,     # extra udacity
-                                                #   0.4
-                                                ])    # extra udacity
+                                    percentage = percentage,
+                                    ignore_every_kth=ignore_every_kth)   
     get_distribution(dataset)
     train_ds, val_ds = split_data(dataset)
     
@@ -148,7 +173,10 @@ if __name__ == "__main__":
 
     with open(output_json_path, 'w') as f:
         json.dump({"folders_path" : [folder_paths],
-                   "distribution" : distro}, f, indent=4)
+                   "distribution" : distro,
+                   "percentage_per_dataset" : percentage,
+                   "ignore_kth_image_per_dataset" : ignore_every_kth
+                   }, f, indent=4)
     
     filename = "vit_{}".format(env_name)
     # Callbacks

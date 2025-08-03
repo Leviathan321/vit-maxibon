@@ -17,7 +17,8 @@ class DrivingDatasetLazy:
                  folder_paths,  # str | Path | list[str | Path]
                  predict_throttle: bool = False,
                  preprocess_images: bool = True,
-                 percentage=0.3):  # float | list[float] | dict[str | Path, float]
+                 percentage=0.3,
+                 ignore_every_kth: list = None):  # float | list[float] | dict[str | Path, float]
 
         # Normalize folder paths
         if isinstance(folder_paths, (str, pathlib.Path)):
@@ -42,13 +43,24 @@ class DrivingDatasetLazy:
         elif isinstance(percentage, list):
             if len(percentage) != len(self.folder_paths):
                 raise ValueError("Length of percentage list must match number of folder_paths")
-
-            for idx, (folder_path, perc) in enumerate(zip(self.folder_paths, percentage)):
+            
+            for idx, folder_path in enumerate(self.folder_paths):
                 df = pd.read_csv(folder_path / 'actions.csv')
                 df['folder_idx'] = idx
-                n_total = len(df)
-                n_sample = int(n_total * float(perc))
-                df = df.iloc[:n_sample].reset_index(drop=True)
+
+                # Optional per-folder k-th image skipping
+                if ignore_every_kth is not None:
+                    k = ignore_every_kth[idx]
+                    if k is not None and k > 1:
+                        df = df.iloc[[i for i in range(len(df)) if (i + 1) % k != 0]].reset_index(drop=True)
+                        
+                # Apply percentage-based filtering
+                pct = percentage[idx]
+                if not (0 < pct <= 1):
+                    raise ValueError(f"Percentage at index {idx} must be in the range (0, 1], got {pct}")
+                n = int(len(df) * pct)
+                df = df.iloc[:n].reset_index(drop=True)
+
                 metadata_list.append(df)
 
             self.metadata = pd.concat(metadata_list, ignore_index=True)
