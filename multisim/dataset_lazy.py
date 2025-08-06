@@ -18,7 +18,7 @@ class DrivingDatasetLazy:
                  predict_throttle: bool = False,
                  preprocess_images: bool = True,
                  percentage=0.3,
-                 ignore_every_kth: list = None):  # float | list[float] | dict[str | Path, float]
+                 use_every_kth: list = None):  # float | list[float] | dict[str | Path, float]
 
         # Normalize folder paths
         if isinstance(folder_paths, (str, pathlib.Path)):
@@ -49,10 +49,10 @@ class DrivingDatasetLazy:
                 df['folder_idx'] = idx
 
                 # Optional per-folder k-th image skipping
-                if ignore_every_kth is not None:
-                    k = ignore_every_kth[idx]
+                if use_every_kth is not None:
+                    k = use_every_kth[idx]
                     if k is not None and k > 1:
-                        df = df.iloc[[i for i in range(len(df)) if (i + 1) % k != 0]].reset_index(drop=True)
+                        df = df.iloc[[i for i in range(len(df)) if (i + 1) % k == 0]].reset_index(drop=True)
                         
                 # Apply percentage-based filtering
                 pct = percentage[idx]
