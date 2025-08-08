@@ -1,6 +1,8 @@
+import json
 import os
 import csv
 from pathlib import Path
+import pandas as pd
 import matplotlib.pyplot as plt
 import torch
 from torch.utils.data import DataLoader
@@ -11,7 +13,7 @@ from datetime import datetime
 from multisim.dataset_lazy import DrivingDatasetLazy, split_data
 from multisim.dataset_utils import load_archive_into_dataset, DrivingDataset
 from udacity_gym.extras.model.lane_keeping.vit.vit_model import ViT
-
+from multisim.plot import plot_steering_distribution
 
 # Custom callback to append validation loss to CSV after each validation epoch
 class ValLossCSVLogger(pl.Callback):
@@ -57,6 +59,28 @@ class ValLossCSVLogger(pl.Callback):
         plt.savefig(plot_path)
         plt.close()
 
+def get_distribution(dataset):
+    from collections import Counter
+
+    # Assuming your dataset has a pandas DataFrame self.metadata with 'image_name' column
+    env_counts = Counter()
+
+    for idx in range(len(dataset)):
+        image_name = str(dataset.metadata.iloc[idx]["image_name"]).lower()
+        if "beamng" in image_name:
+            env_counts["beamng"] += 1
+        elif "donkey" in image_name:
+            env_counts["donkey"] += 1
+        elif "udacity" in image_name:
+            env_counts["udacity"] += 1
+        else:
+            env_counts["unknown"] += 1
+
+    print("Counts via __getitem__:")
+    for env, count in env_counts.items():
+        print(f"{env}: {count}")
+    
+    return env_counts
 
 if __name__ == "__main__":
     archive_path = "/home/lev/Downloads/training_datasets/raw/"
@@ -78,13 +102,54 @@ if __name__ == "__main__":
         raise ValueError("No valid (uncommented) archive names found.")
 
     print("env_name:", env_name)
+    additional_data_paths = [
+        # maxibon - seed2000 - 25
+        #"/home/lev/Documents/testing/MultiSimulation/vit-recordings-maxi/2000/beamng_2025-07-30_14-17-01",
+        "/home/lev/Documents/testing/MultiSimulation/vit-recordings-maxi/2000/donkey_2025-07-30_14-04-44",
+        #"/home/lev/Documents/testing/MultiSimulation/vit-recordings-maxi/2000/udacity_2025-07-30_18-13-59",
 
+        # maxibon - seed3000 - 25
+        #"/home/lev/Documents/testing/MultiSimulation/vit-recordings-maxi/3000/beamng_2025-07-31_22-59-29/",
+        "/home/lev/Documents/testing/MultiSimulation/vit-recordings-maxi/3000/donkey_2025-07-31_22-47-17/",
+        #"/home/lev/Documents/testing/MultiSimulation/vit-recordings-maxi/3000/udacity_2025-08-02_01-55-41"
+
+        #"/home/lev/Documents/testing/MultiSimulation/opensbt-multisim/recording/data/20-07-2025",
+        #"/home/lev/Documents/testing/MultiSimulation/opensbt-multisim/recording/data/18-07-2025/",
+        # "/home/lev/Documents/testing/MultiSimulation/opensbt-multisim/recording/data/20-07-2025_2000/",
+        # "/home/lev/Documents/testing/MultiSimulation/opensbt-multisim/recording/data/21-07-2025_2000/",
+        # "/home/lev/Documents/testing/MultiSimulation/opensbt-multisim/recording/data/23-07-2025_2000", # udacity
+        # "/home/lev/Documents/testing/MultiSimulation/opensbt-multisim/recording/data/24-07-2025_2000", # udacity
+        # "/home/lev/Documents/testing/MultiSimulation/opensbt-multisim/recording/data/bng_recording_25-07-25_2000/25-07-2025_2000" # udacity
+        ]
+    folder_paths = [archive_path] + additional_data_paths
+
+    # evaluate distribution
+    plot_steering_distribution(folder_paths)
+
+    percentage = [  1,# maxibon based
+                    #1,
+                    1,
+                    #1,
+
+                    #1,
+                    1,
+                    #1,
+                    #     1,       # initial
+                    #   0.4,     # extra donkey
+                    #   0.4,     # extra donkey
+                    #   0.4,     # extra udacity
+                    #   0.4,
+                    #   0.4       # beamng
+                ]
+    use_every_kth = None
     # Create PyTorch datasets
-    dataset = DrivingDatasetLazy(folder_path=archive_path,
+    dataset = DrivingDatasetLazy(folder_paths=folder_paths,
                                     predict_throttle=False,
                                     preprocess_images=True,
-                                    is_training=True)
-    
+                                    is_training=True,
+                                    percentage = percentage,
+                                    use_every_kth=use_every_kth)   
+    get_distribution(dataset)
     train_ds, val_ds = split_data(dataset)
     
     print(f"Dataset contains {len(dataset)} images.")
@@ -98,10 +163,21 @@ if __name__ == "__main__":
 
     print("Data lodaded")
 
-    current_date = datetime.now().strftime("%d-%m-%Y")
-    checkpoint_dir = f"./multisim/checkpoints_{current_date}/lane_keeping/vit"
+    current_date = datetime.now().strftime("%d-%m-%Y_%H-%M")
+    checkpoint_dir = f"./multisim/checkpoints_{current_date}/lane_keeping/vit/"
     os.makedirs(checkpoint_dir, exist_ok=True)
 
+    # write data paths for tracking
+    distro = get_distribution(dataset)
+    output_json_path = Path(checkpoint_dir + os.sep + "data.json")
+
+    with open(output_json_path, 'w') as f:
+        json.dump({"folders_path" : [folder_paths],
+                   "distribution" : distro,
+                   "percentage_per_dataset" : percentage,
+                   "use_kth_image_per_dataset" : use_every_kth
+                   }, f, indent=4)
+    
     filename = "vit_{}".format(env_name)
     # Callbacks
     checkpoint_callback = ModelCheckpoint(
@@ -112,7 +188,7 @@ if __name__ == "__main__":
         mode="min",
         verbose=True,
     )
-    earlystopping_callback = EarlyStopping(monitor="val/loss", mode="min", patience=15)
+    earlystopping_callback = EarlyStopping(monitor="val/loss", mode="min", patience=5)
     val_loss_logger = ValLossCSVLogger(save_dir=checkpoint_dir, 
                                        env_name = env_name)
 

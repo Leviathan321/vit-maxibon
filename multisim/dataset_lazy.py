@@ -14,16 +14,63 @@ import pandas as pd
 class DrivingDatasetLazy:
     def __init__(self, 
                  is_training: bool,
-                 folder_path: str,
+                 folder_paths,  # str | Path | list[str | Path]
                  predict_throttle: bool = False,
-                 preprocess_images: bool = True):
-        self.folder_path =  pathlib.Path(folder_path)
-        self.metadata = pd.read_csv(self.folder_path.joinpath('actions.csv'))
+                 preprocess_images: bool = True,
+                 percentage=0.3,
+                 use_every_kth: list = None):  # float | list[float] | dict[str | Path, float]
+
+        # Normalize folder paths
+        if isinstance(folder_paths, (str, pathlib.Path)):
+            folder_paths = [folder_paths]
+        self.folder_paths = [pathlib.Path(fp) for fp in folder_paths]
+
+        metadata_list = []
+
+        if isinstance(percentage, (float, int)):
+            # Global sampling: concatenate, then take first N rows
+            for idx, folder_path in enumerate(self.folder_paths):
+                df = pd.read_csv(folder_path / 'actions.csv')
+                df['folder_idx'] = idx
+                metadata_list.append(df)
+
+            full_metadata = pd.concat(metadata_list, ignore_index=True)
+
+            n_total = len(full_metadata)
+            n_sample = int(n_total * float(percentage))
+            self.metadata = full_metadata.iloc[:n_sample].reset_index(drop=True)
+
+        elif isinstance(percentage, list):
+            if len(percentage) != len(self.folder_paths):
+                raise ValueError("Length of percentage list must match number of folder_paths")
+            
+            for idx, folder_path in enumerate(self.folder_paths):
+                df = pd.read_csv(folder_path / 'actions.csv')
+                df['folder_idx'] = idx
+
+                # Optional per-folder k-th image skipping
+                if use_every_kth is not None:
+                    k = use_every_kth[idx]
+                    if k is not None and k > 1:
+                        df = df.iloc[[i for i in range(len(df)) if (i + 1) % k == 0]].reset_index(drop=True)
+                        
+                # Apply percentage-based filtering
+                pct = percentage[idx]
+                if not (0 < pct <= 1):
+                    raise ValueError(f"Percentage at index {idx} must be in the range (0, 1], got {pct}")
+                n = int(len(df) * pct)
+                df = df.iloc[:n].reset_index(drop=True)
+
+                metadata_list.append(df)
+
+            self.metadata = pd.concat(metadata_list, ignore_index=True)
+
         self.counter = 0
         self.index_map = []  # List of (file_path, key, local_index)
         self.predict_throttle = predict_throttle
         self.preprocess_images = preprocess_images
         self.is_training = is_training
+
         # for path in self.file_paths:
         #     with np.load(path, allow_pickle=False) as archive:
         #         arr = archive["observations"]
@@ -37,9 +84,21 @@ class DrivingDatasetLazy:
     
     # @cache
     def get_image(self, idx):
-        img = Image.open(self.folder_path.joinpath("",self.metadata.iloc[idx, 0] + ".png"))
-        return np.array(img)
+        base_filename = self.metadata.iloc[idx, 0]
+   
+        folder_idx = self.metadata.iloc[idx]['folder_idx']
+        folder_path = self.folder_paths[folder_idx]
 
+        assert folder_idx < len(self.folder_paths)
+
+        possible_extensions = [".png", ".jpg", ".jpeg"]
+        
+        for ext in possible_extensions:
+            file_path = folder_path.joinpath(base_filename + ext)
+            if file_path.exists():
+                with Image.open(file_path) as img:
+                    return np.array(img)
+                
     def _get_env_name(self, path):
         if "beamng" in path:
             return "beamng"
@@ -87,46 +146,53 @@ class DrivingDatasetLazy:
         if self.preprocess_images:
             img = preprocess(img, env_name, fake_images=False)
         
-        # image = Image.fromarray(img)
-        # image.save(f"./image_vit_training_{self.counter}.png")
-        
+        image = Image.fromarray(img)
+        #image.save(f"./image_vit_training_{self.counter}.png")
+        #image.save(f"./image_vit_training.png")
+
         img = torchvision.transforms.ToTensor()(img)  # shape (C, H, W), float in [0, 1]
         
         label = torch.from_numpy(label).float()
 
         return img, label
 
-def split_data(dataset, ratio=0.2, seed=42):
-    # Define split
+def split_data(dataset, ratio=0.2, seed=42, percentage=1.0):
+    # Validate percentage
+    assert 0 < percentage <= 1.0, "Percentage must be in (0, 1]."
+
     n_total = len(dataset)
-    n_val = int(n_total * ratio)
-    n_train = n_total - n_val
+    n_used = int(n_total * percentage)
 
-    # Shuffle indices reproducibly
+    # Shuffle all indices reproducibly
     rng = np.random.default_rng(seed=seed)
-    indices = rng.permutation(n_total)
+    all_indices = rng.permutation(n_total)
 
-    train_indices = indices[:n_train]
-    val_indices = indices[n_train:]
+    # Select a random subset of the data
+    used_indices = all_indices[:n_used]
 
-    # Create subsets
+    # Split into train and val
+    n_val = int(n_used * ratio)
+    n_train = n_used - n_val
+
+    train_indices = used_indices[:n_train]
+    val_indices = used_indices[n_train:]
+
     train_ds = Subset(dataset, train_indices)
     val_ds = Subset(dataset, val_indices)
 
-    # print("len(train_ds):", len(train_ds))
-    # print("len(val_ds):", len(val_ds))
     return train_ds, val_ds
+
 
 if __name__ == "__main__":
     folder = "/home/lev/Downloads/training_datasets"
     index = 1
-    dataset = DrivingDatasetLazy(folder_path=folder,
+    dataset = DrivingDatasetLazy(folder_paths=folder,
                                  predict_throttle=False,
                                  preprocess_images=True,
                                  is_training=True)
     print(f"Dataset contains {len(dataset)} images.")
 
-    train_ds, val_ds = split_data(dataset)
+    train_ds, val_ds = split_data(dataset, percentage=0.6)
 
     # Data loaders
     train_loader = DataLoader(train_ds, batch_size=32,
