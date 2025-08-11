@@ -102,15 +102,25 @@ if __name__ == "__main__":
         raise ValueError("No valid (uncommented) archive names found.")
 
     print("env_name:", env_name)
-    additional_data_paths = [
+    folder_paths = [
+        archive_path,
+       # maxibon - seed2000 - 50
+        "/home/lev/Documents/testing/MultiSimulation/vit-recordings-maxi/2000_50/beamng_2025-08-08_19-23-23",
+        "/home/lev/Documents/testing/MultiSimulation/vit-recordings-maxi/2000_50/donkey_2025-08-08_18-36-14",
+        "/home/lev/Documents/testing/MultiSimulation/vit-recordings-maxi/2000_50/udacity_2025-08-08_19-00-00",
+
+        "/home/lev/Documents/testing/MultiSimulation/vit-recordings-maxi/3000/beamng_2025-07-31_22-59-29",
+        "/home/lev/Documents/testing/MultiSimulation/vit-recordings-maxi/3000/donkey_2025-07-31_22-47-17",
+        "/home/lev/Documents/testing/MultiSimulation/vit-recordings-maxi/3000/udacity_2025-08-02_01-55-41",
+
         # maxibon - seed2000 - 25
         #"/home/lev/Documents/testing/MultiSimulation/vit-recordings-maxi/2000/beamng_2025-07-30_14-17-01",
-        "/home/lev/Documents/testing/MultiSimulation/vit-recordings-maxi/2000/donkey_2025-07-30_14-04-44",
+        #"/home/lev/Documents/testing/MultiSimulation/vit-recordings-maxi/2000/donkey_2025-07-30_14-04-44",
         #"/home/lev/Documents/testing/MultiSimulation/vit-recordings-maxi/2000/udacity_2025-07-30_18-13-59",
 
         # maxibon - seed3000 - 25
         #"/home/lev/Documents/testing/MultiSimulation/vit-recordings-maxi/3000/beamng_2025-07-31_22-59-29/",
-        "/home/lev/Documents/testing/MultiSimulation/vit-recordings-maxi/3000/donkey_2025-07-31_22-47-17/",
+        #"/home/lev/Documents/testing/MultiSimulation/vit-recordings-maxi/3000/donkey_2025-07-31_22-47-17/",
         #"/home/lev/Documents/testing/MultiSimulation/vit-recordings-maxi/3000/udacity_2025-08-02_01-55-41"
 
         #"/home/lev/Documents/testing/MultiSimulation/opensbt-multisim/recording/data/20-07-2025",
@@ -121,19 +131,19 @@ if __name__ == "__main__":
         # "/home/lev/Documents/testing/MultiSimulation/opensbt-multisim/recording/data/24-07-2025_2000", # udacity
         # "/home/lev/Documents/testing/MultiSimulation/opensbt-multisim/recording/data/bng_recording_25-07-25_2000/25-07-2025_2000" # udacity
         ]
-    folder_paths = [archive_path] + additional_data_paths
 
     # evaluate distribution
-    plot_steering_distribution(folder_paths)
+    plot_steering_distribution(folder_paths, normalize=False)
 
     percentage = [  1,# maxibon based
-                    #1,
+                    
                     1,
-                    #1,
+                    1,
+                    1,
 
-                    #1,
                     1,
-                    #1,
+                    1,
+                    1,
                     #     1,       # initial
                     #   0.4,     # extra donkey
                     #   0.4,     # extra donkey
@@ -141,7 +151,16 @@ if __name__ == "__main__":
                     #   0.4,
                     #   0.4       # beamng
                 ]
-    use_every_kth = None
+    use_every_kth = [1,
+                     
+                     2, # every second beamng
+                     1,
+                     1,
+                    
+                     2, # every second beamng
+                     1,
+                     1,
+                     ]
     # Create PyTorch datasets
     dataset = DrivingDatasetLazy(folder_paths=folder_paths,
                                     predict_throttle=False,
@@ -209,3 +228,6 @@ if __name__ == "__main__":
         train_dataloaders=train_loader,
         val_dataloaders=val_loader,
     )
+
+    # Print checkpoint directory so it can be used in bash commands
+    print(checkpoint_dir)
