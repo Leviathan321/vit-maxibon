@@ -137,13 +137,12 @@ if __name__ == "__main__":
 
     percentage = [  1,# maxibon based
                     
-                    1,
-                    1,
-                    1,
-
-                    1,
-                    1,
-                    1,
+                1,
+                1,
+                1,
+                0.8,
+                0.8,
+                0.6
                     #     1,       # initial
                     #   0.4,     # extra donkey
                     #   0.4,     # extra donkey
@@ -154,12 +153,12 @@ if __name__ == "__main__":
     use_every_kth = [1,
                      
                      2, # every second beamng
-                     1,
-                     1,
+                     2,
+                     2,
                     
                      2, # every second beamng
-                     1,
-                     1,
+                     2,
+                     2                     
                      ]
     # Create PyTorch datasets
     dataset = DrivingDatasetLazy(folder_paths=folder_paths,

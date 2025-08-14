@@ -1,5 +1,5 @@
 # train model and get the models dir
-checkpoint_dir=
+checkpoint_dir=""
 
 original_dir=$(pwd)
 
