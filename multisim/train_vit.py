@@ -84,7 +84,9 @@ def get_distribution(dataset):
 
 if __name__ == "__main__":
     archive_path = "/home/lev/Downloads/training_datasets/raw/"
-
+    
+    resume_checkpoint_path = "/home/lev/Documents/testing/MultiSimulation/vit-maxibon/multisim/checkpoints_10-08-2025_12-49_good/lane_keeping/vit/vit_mixed.ckpt"
+    
     archive_names = [
         "beamng-2022_05_31_14_34_55-archive-agent-autopilot-seed-0-episodes-50.npz",
         "udacity-2022_05_31_12_17_56-archive-agent-autopilot-seed-0-episodes-50.npz",
@@ -103,15 +105,15 @@ if __name__ == "__main__":
 
     print("env_name:", env_name)
     folder_paths = [
-        archive_path,
+        # archive_path,
        # maxibon - seed2000 - 50
-        "/home/lev/Documents/testing/MultiSimulation/vit-recordings-maxi/2000_50/beamng_2025-08-08_19-23-23",
-        "/home/lev/Documents/testing/MultiSimulation/vit-recordings-maxi/2000_50/donkey_2025-08-08_18-36-14",
-        "/home/lev/Documents/testing/MultiSimulation/vit-recordings-maxi/2000_50/udacity_2025-08-08_19-00-00",
+        # "/home/lev/Documents/testing/MultiSimulation/vit-recordings-maxi/2000_50/beamng_2025-08-08_19-23-23",
+        # "/home/lev/Documents/testing/MultiSimulation/vit-recordings-maxi/2000_50/donkey_2025-08-08_18-36-14",
+        # "/home/lev/Documents/testing/MultiSimulation/vit-recordings-maxi/2000_50/udacity_2025-08-08_19-00-00",
 
-        "/home/lev/Documents/testing/MultiSimulation/vit-recordings-maxi/3000/beamng_2025-07-31_22-59-29",
-        "/home/lev/Documents/testing/MultiSimulation/vit-recordings-maxi/3000/donkey_2025-07-31_22-47-17",
-        "/home/lev/Documents/testing/MultiSimulation/vit-recordings-maxi/3000/udacity_2025-08-02_01-55-41",
+        # "/home/lev/Documents/testing/MultiSimulation/vit-recordings-maxi/3000/beamng_2025-07-31_22-59-29",
+        # "/home/lev/Documents/testing/MultiSimulation/vit-recordings-maxi/3000/donkey_2025-07-31_22-47-17",
+        # "/home/lev/Documents/testing/MultiSimulation/vit-recordings-maxi/3000/udacity_2025-08-02_01-55-41",
 
         # maxibon - seed2000 - 25
         #"/home/lev/Documents/testing/MultiSimulation/vit-recordings-maxi/2000/beamng_2025-07-30_14-17-01",
@@ -130,19 +132,22 @@ if __name__ == "__main__":
         # "/home/lev/Documents/testing/MultiSimulation/opensbt-multisim/recording/data/23-07-2025_2000", # udacity
         # "/home/lev/Documents/testing/MultiSimulation/opensbt-multisim/recording/data/24-07-2025_2000", # udacity
         # "/home/lev/Documents/testing/MultiSimulation/opensbt-multisim/recording/data/bng_recording_25-07-25_2000/25-07-2025_2000" # udacity
+        # finetuning beamng
+        # rf"C://Users//levia//Documents//testing//Multi-Simulation//opensbt-multisim//recording//data//14-08-2025_5000"
+        "/home/lev/Documents/testing/MultiSimulation/vit-recordings-maxi/4000_25_length20/tmp/"
         ]
 
     # evaluate distribution
     plot_steering_distribution(folder_paths, normalize=False)
 
-    percentage = [  1,# maxibon based
+    percentage = [  0.8,# maxibon based
                     
-                1,
-                1,
-                1,
-                0.8,
-                0.8,
-                0.6
+                # 1,
+                # 1,
+                # 1,
+                # 0.8,
+                # 0.8,
+                # 0.6
                     #     1,       # initial
                     #   0.4,     # extra donkey
                     #   0.4,     # extra donkey
@@ -150,15 +155,15 @@ if __name__ == "__main__":
                     #   0.4,
                     #   0.4       # beamng
                 ]
-    use_every_kth = [1,
+    use_every_kth = [2,
                      
-                     2, # every second beamng
-                     2,
-                     2,
+                    #  2, # every second beamng
+                    #  2,
+                    #  2,
                     
-                     2, # every second beamng
-                     2,
-                     2                     
+                    #  2, # every second beamng
+                    #  2,
+                    #  2                     
                      ]
     # Create PyTorch datasets
     dataset = DrivingDatasetLazy(folder_paths=folder_paths,
@@ -173,11 +178,13 @@ if __name__ == "__main__":
     print(f"Dataset contains {len(dataset)} images.")
     # Data loaders
     train_loader = DataLoader(train_ds, batch_size=32,
-                            shuffle=True, num_workers=8, prefetch_factor=1, pin_memory = True)
+                            shuffle=True, num_workers=8, prefetch_factor=1, pin_memory = True,
+                            persistent_workers=True)
     val_loader = DataLoader(val_ds, batch_size=32, shuffle=False, 
                             num_workers=8,
                             prefetch_factor=1,
-                             pin_memory = True)
+                             pin_memory = True,
+                             persistent_workers=True)
 
     print("Data lodaded")
 
@@ -193,7 +200,8 @@ if __name__ == "__main__":
         json.dump({"folders_path" : [folder_paths],
                    "distribution" : distro,
                    "percentage_per_dataset" : percentage,
-                   "use_kth_image_per_dataset" : use_every_kth
+                   "use_kth_image_per_dataset" : use_every_kth,
+                   "resume_ckpt_path" : resume_checkpoint_path
                    }, f, indent=4)
     
     filename = "vit_{}".format(env_name)
@@ -218,8 +226,12 @@ if __name__ == "__main__":
         callbacks=[checkpoint_callback, earlystopping_callback, val_loss_logger],
     )
 
-    # Model init
-    model = ViT()
+    if resume_checkpoint_path is not None:
+        # Load the model from checkpoint
+        model = ViT.load_from_checkpoint(resume_checkpoint_path)
+    else:
+        # Model init
+        model = ViT()
 
     # Train
     trainer.fit(

@@ -13,9 +13,32 @@ source $EVALUATE_VALIDITY_DIR/venv/bin/activate
 # TODO NEED TO SET CONFIG PATH
 
 # evaluate model with sims
-bash $EVALUATE_VALIDITY_DIR/run_evaluate_validity_vit_ud.sh $checkpoint_dir
-bash $EVALUATE_VALIDITY_DIR/run_evaluate_validity_vit_dnk.sh $checkpoint_dir
-bash $EVALUATE_VALIDITY_DIR/run_evaluate_validity_vit_bng.sh $checkpoint_dir
+# Get current date and time with hyphen delimiters
+datetime=$(date +"%d-%m-%Y")
 
+# Run the Python script with timestamped prefix
+python -m scripts.evaluate_validity \
+       -s "beamng_vit" \
+       -n 3 \
+       -prefix "VIT_$datetime" \
+       -save_folder "$checkpoint_dir"
+
+datetime=$(date +"%d-%m-%Y")
+
+# Run the Python script with timestamped prefix
+python -m scripts.evaluate_validity \
+       -s "donkey_vit" \
+       -n 3 \
+       -prefix "VIT_$datetime" \
+       -save_folder "$checkpoint_dir"
+
+datetime=$(date +"%d-%m-%Y")
+
+# Run the Python script with timestamped prefix
+python -m scripts.evaluate_validity \
+       -s "udacity_vit" \
+       -n 3 \
+       -prefix "VIT_$datetime" \
+       -save_folder "$checkpoint_dir"
 
 cd "$original_dir"
