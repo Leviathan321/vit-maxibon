@@ -109,9 +109,9 @@ if __name__ == "__main__":
     suffix_folder_name = args.suffix_folder_name
     print(f"[INFO] Using learning rate for tuning: {lr_rate_tune}")
 
-    archive_path = "/home/lev/Downloads/training_datasets/raw/"
+    archive_path = rf"C:\Users\levia\Downloads\raw"
     
-    resume_checkpoint_path = rf"..\vit-maxibon\multisim\checkpoints_16-08-2025_14-57_lr-1.5e-05\lane_keeping\vit\vit_mixed.ckpt"
+    resume_checkpoint_path = None #rf"..\vit-maxibon\multisim\checkpoints_16-08-2025_14-57_lr-1.5e-05\lane_keeping\vit\vit_mixed.ckpt"
 
     #for lr_rate_tune in [0.0001,0.00005,0.00002]:
     #lr_rate_tune = 0.00005 # original is 0.0002
@@ -134,7 +134,7 @@ if __name__ == "__main__":
 
     print("env_name:", env_name)
     folder_paths = [
-        # archive_path,
+        archive_path,
     # maxibon - seed2000 - 50
         # "/home/lev/Documents/testing/MultiSimulation/vit-recordings-maxi/2000_50/beamng_2025-08-08_19-23-23",
         # "/home/lev/Documents/testing/MultiSimulation/vit-recordings-maxi/2000_50/donkey_2025-08-08_18-36-14",
@@ -165,13 +165,26 @@ if __name__ == "__main__":
         # finetuning beamng
         # rf"C://Users//levia//Documents//testing//Multi-Simulation///vit-recordings-maxi/3000_tracks25/beamng_2025-07-31_22-59-29"]
         # finetuning donkey
-        rf"C:\Users\levia\Documents\testing\Multi-Simulation\vit-recordings-maxi\3000_tracks25\donkey_2025-07-31_22-47-17"]
+        # rf"C:\Users\levia\Documents\testing\Multi-Simulation\vit-recordings-maxi\3000_tracks25\donkey_2025-07-31_22-47-17"
+        rf"..\vit-recordings-maxi\2000_tracks50_samefps\beamng_2000_50_2025-08-21_00-36-03",
+        rf"..\vit-recordings-maxi\2000_tracks50_samefps\donkey_2000_50_2025-08-21_00-02-08",
+        rf"..\vit-recordings-maxi\2000_tracks50_samefps\udacity_2000_50_2025-08-21_00-19-49",
+
+        rf"..\vit-recordings-maxi\3000_tracks50_samefps\beamng_3000_50_2025-08-22_00-06-00",
+        rf"..\vit-recordings-maxi\3000_tracks50_samefps\donkey_3000_50_2025-08-21_23-32-56",
+        rf"..\vit-recordings-maxi\3000_tracks50_samefps\udacity_3000_50_2025-08-21_23-49-59"
+        ]
 
     # evaluate distribution
-    # plot_steering_distribution(folder_paths, normalize=False)
+    plot_steering_distribution(folder_paths, normalize=False)
 
-    percentage = [  0.4,# maxibon based
-                    
+    percentage = [ 1,
+                      1,
+                      1,
+                      1, # maxibon based
+                        1,
+                        1,
+                        1
                     # 1,
                     # 1,
                     # 1,
@@ -186,8 +199,13 @@ if __name__ == "__main__":
                     #   0.4,
                     #   0.4       # beamng
                 ]
-    use_every_kth = [2,
-                    
+    use_every_kth = [1,
+                    1,
+                     1,
+                     1,
+                    1,
+                     1,
+                     1
                     #  2, # every second beamng
                     #  1,
                     #  1,

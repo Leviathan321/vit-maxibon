@@ -1,44 +1,62 @@
 # train model and get the models dir
-checkpoint_dir=""
+lr_rates=(0.000015 0.000013 0.00001 0.0001)
+fname_suffix="tune-donkey_data-0.4_take-2"
 
-original_dir=$(pwd)
+for lr in "${lr_rates[@]}"; do
+    source venv/Scripts/activate
 
-# Define path to the other project relative to the current project
-EVALUATE_VALIDITY_DIR="../opensbt-multisim/"  # adjust this path as needed
+    echo "[INFO] Starting training and retrieving checkpoint directory..."
+    checkpoint_dir=$(python -m multisim.train_vit --lr_rate_tune "$lr" --suffix_folder_name "$fname_suffix" | tail -n 1)
 
-cd $EVALUATE_VALIDITY_DIR
+    echo "[INFO] Training script returned checkpoint dir: $checkpoint_dir"
 
-source $EVALUATE_VALIDITY_DIR/venv/bin/activate
+    export VIT_MODEL_PATH="$checkpoint_dir/vit_mixed.ckpt"
+    echo "[INFO] Exported VIT_MODEL_PATH: $VIT_MODEL_PATH"
 
-# TODO NEED TO SET CONFIG PATH
+    original_dir=$(pwd)
 
-# evaluate model with sims
-# Get current date and time with hyphen delimiters
-datetime=$(date +"%d-%m-%Y")
+    # Define path to the other project
+    EVALUATE_VALIDITY_DIR="../opensbt-multisim/"  # adjust as needed
 
-# Run the Python script with timestamped prefix
-python -m scripts.evaluate_validity \
-       -s "beamng_vit" \
-       -n 3 \
-       -prefix "VIT_$datetime" \
-       -save_folder "$checkpoint_dir"
+    cd $EVALUATE_VALIDITY_DIR
 
-datetime=$(date +"%d-%m-%Y")
+    if [[ "$OS_TYPE" == "linux" || "$OS_TYPE" == "darwin" ]]; then
+        echo "[INFO] Detected Linux/macOS. Activating venv"
+        source venv/bin/activate
+    else
+        echo "[INFO] Detected Windows. Activating venv."
+        source venv/Scripts/activate
+    fi
 
-# Run the Python script with timestamped prefix
-python -m scripts.evaluate_validity \
-       -s "donkey_vit" \
-       -n 3 \
-       -prefix "VIT_$datetime" \
-       -save_folder "$checkpoint_dir"
+    # evaluate model with sims
+    # Get current date and time with hyphen delimiters
+    datetime=$(date +"%d-%m-%Y")
 
-datetime=$(date +"%d-%m-%Y")
+    # Run the Python script with timestamped prefix
+    python -m scripts.evaluate_validity \
+        -s "beamng_vit" \
+        -n 3 \
+        -prefix "VIT_$datetime" \
+        -save_folder "$checkpoint_dir/validation_beamng/"
 
-# Run the Python script with timestamped prefix
-python -m scripts.evaluate_validity \
-       -s "udacity_vit" \
-       -n 3 \
-       -prefix "VIT_$datetime" \
-       -save_folder "$checkpoint_dir"
+    datetime=$(date +"%d-%m-%Y")
 
-cd "$original_dir"
+    # Run the Python script with timestamped prefix
+    python -m scripts.evaluate_validity \
+        -s "donkey_vit" \
+        -n 3 \
+        -prefix "VIT_$datetime" \
+        -save_folder "$checkpoint_dir/validation_donkey/"
+
+    datetime=$(date +"%d-%m-%Y")
+
+    # Run the Python script with timestamped prefix
+    python -m scripts.evaluate_validity \
+        -s "udacity_vit" \
+        -n 3 \
+        -prefix "VIT_$datetime" \
+        -save_folder "$checkpoint_dir/validation_udacity/"
+
+    # Return to original dir
+    cd "$original_dir" || { echo "[ERROR] Cannot cd back to $original_dir"; exit 1; }
+done

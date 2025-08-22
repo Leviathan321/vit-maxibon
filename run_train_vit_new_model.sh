@@ -1,0 +1,1 @@
+python -m multisim.train_vit_new_model

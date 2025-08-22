@@ -7,7 +7,8 @@ import numpy as np
 logg = GlobalLog("train_model")
 
 # archive_path = r"C:\\Users\\sorokin\\Downloads\\training_datasets\\"
-archive_path = r"/home/lev/Downloads/training_datasets/"
+#archive_path = r"/home/lev/Downloads/training_datasets/"
+archive_path = fr"C:\Users\levia\Downloads\training_datasets\\"
 
 seed = 1
 test_split = 0

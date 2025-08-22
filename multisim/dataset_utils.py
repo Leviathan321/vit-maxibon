@@ -37,6 +37,8 @@ def load_all_into_dataset(  archive_path: str,
     actions = []
     for i in range(len(archive_names)):
         numpy_dict = load_archive(archive_path=archive_path, archive_name=archive_names[i])
+        #print(f"Archive {archive_names[i]} contains fields:", list(numpy_dict.keys()))
+        
         obs_i = numpy_dict["observations"]
         actions_i = numpy_dict["actions"]
         obs.append(obs_i)
